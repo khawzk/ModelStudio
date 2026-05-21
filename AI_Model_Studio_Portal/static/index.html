@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Model Studio Showcase | Telesales MYS</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <aside class="side">
+      <div class="brand">
+        <span>Alibaba Cloud</span>
+        <strong>Telesales MYS</strong>
+      </div>
+      <label>Region</label>
+      <select id="region">
+        <option value="intl">International / Singapore</option>
+        <option value="cn">China / Beijing</option>
+        <option value="us">US / Virginia</option>
+      </select>
+      <label>API Key</label>
+      <input id="apiKey" type="password" placeholder="Uses DASHSCOPE_API_KEY if empty" />
+      <nav>
+        <button data-view="text">Text</button>
+        <button data-view="vision">Vision</button>
+        <button data-view="omni">Omni</button>
+        <button class="active" data-view="image">Image Studio</button>
+        <button data-view="video">Video Studio</button>
+        <button data-view="speech">Speech</button>
+        <button data-view="session">Session</button>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="kicker">Model Studio Console</p>
+          <h1>Alibaba Cloud Telesales MYS</h1>
+        </div>
+        <div class="run-metric">
+          <span>Runs</span>
+          <strong id="runCount">0</strong>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <section id="view-text" class="view"></section>
+        <section id="view-vision" class="view"></section>
+        <section id="view-omni" class="view"></section>
+        <section id="view-image" class="view active"></section>
+        <section id="view-video" class="view"></section>
+        <section id="view-speech" class="view"></section>
+        <section id="view-session" class="view"></section>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
