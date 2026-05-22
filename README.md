@@ -24,9 +24,15 @@ http://localhost:8501
 
 Paste your DashScope / Model Studio API key in the UI.
 
-## GitHub Pages
+## GitHub Pages Live Demo
 
-This repo includes a static project page under `docs/` and a GitHub Actions workflow under `.github/workflows/pages.yml`.
+This repo publishes the browser demo directly from `docs/` using GitHub Pages:
+
+```text
+https://khawzk.github.io/ModelStudio/
+```
+
+Users paste their own DashScope / Model Studio API key into the page. The key stays in the browser session and is not committed to the repo.
 
 To enable:
 
@@ -35,11 +41,11 @@ To enable:
 3. Set the source to GitHub Actions.
 4. Push to `main`.
 
-GitHub Pages is only the public project page. Live Model Studio calls still need the local Python app or a lightweight manually managed host because GitHub Pages cannot run the backend WebSocket proxy.
+Most REST-based modules run directly from GitHub Pages: text, vision, image, video task submission/polling, and ASR. Realtime LiveTranslate still needs the Python proxy because browser WebSocket cannot set the required `Authorization` header.
 
 ## Lightweight ECS Option
 
-For a temporary customer demo:
+For realtime LiveTranslate or any browser CORS fallback:
 
 1. Create a small ECS manually.
 2. Clone this repo.

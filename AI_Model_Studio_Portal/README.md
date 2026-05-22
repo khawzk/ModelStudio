@@ -74,7 +74,13 @@ Open port `8501` temporarily in the security group, or put Nginx in front of it 
 
 ## GitHub Pages
 
-This repo includes a Pages workflow in `.github/workflows/pages.yml`. It publishes the static project page from `docs/`.
+This repo includes a Pages workflow in `.github/workflows/pages.yml`. It publishes the browser demo from `docs/`:
+
+```text
+https://khawzk.github.io/ModelStudio/
+```
+
+The Pages version is BYOK and calls Model Studio REST endpoints directly from the browser where supported. The local Python version remains useful for realtime WebSocket LiveTranslate because native browser WebSocket cannot attach the required `Authorization` header.
 
 Enable it in GitHub:
 
