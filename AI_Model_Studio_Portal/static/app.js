@@ -1,7 +1,7 @@
 const catalog = [
   ["Flagship LLM", ["qwen3-max", "qwen-plus", "qwen-flash"], "Reasoning, enterprise Q&A, proposal drafting, workflow automation."],
   ["Multimodal Understanding", ["qwen3.5-plus", "qwen-vl-max-latest", "qwen-vl-plus-latest"], "Image understanding, visual inspection, document screenshots."],
-  ["Image Generation & Editing", ["wan2.7-image-pro", "wan2.7-image", "z-image-turbo"], "Text-to-image, image edit, multi-image fusion, product assets."],
+  ["Image Generation & Editing", ["qwen-image-2.0-pro", "qwen-image-edit-plus", "wan2.7-image-pro"], "Text-to-image, image edit, multi-image fusion, product assets."],
   ["Video Generation", ["wan2.6-t2v", "wan2.7-i2v"], "Text-to-video and image-to-video async creative workflows."],
   ["Speech & Audio", ["qwen3-asr-flash", "qwen-audio-turbo"], "ASR, call transcription, speech translation positioning."],
 ];
@@ -213,7 +213,7 @@ function renderImage() {
   $("view-image").innerHTML = `
     <div class="section-head"><div><h2>Image Studio</h2><p class="hint">Qwen-powered image editing with upload/camera input, plus Wan creation and selected-area workflows.</p></div></div>
     <div class="tabs">
-      ${[["text","Text-to-image"],["edit","Image edit"],["fusion","Fusion"],["fast","Fast product"]].map(([id,label]) => `<button data-mode="${id}" class="${id === imageMode ? "active" : ""}">${label}</button>`).join("")}
+      ${[["text","Text-to-image"],["edit","Image edit"],["fusion","Fusion"]].map(([id,label]) => `<button data-mode="${id}" class="${id === imageMode ? "active" : ""}">${label}</button>`).join("")}
     </div>
     <div class="grid">
       <div class="panel" id="imageControls"></div>
@@ -244,15 +244,13 @@ function imageSourceControls(count = 1) {
 function renderImageControls() {
   const multi = imageMode === "fusion";
   const modelOptions =
-    imageMode === "fast"
-      ? "<option>z-image-turbo</option>"
-      : imageMode === "text"
+    imageMode === "text"
         ? "<option>qwen-image-2.0-pro</option><option>wan2.7-image-pro</option><option>wan2.7-image</option>"
         : "<option>qwen-image-edit-plus</option><option>qwen-image-edit-max</option><option>qwen-image-2.0-pro</option><option>qwen-image-edit</option>";
   $("imageControls").innerHTML = `
     <label>Model</label><select id="imageModel">${modelOptions}</select>
     <label>Prompt</label><textarea id="imagePrompt" rows="6">${imageMode === "edit" ? "Change the car color to matte graphite black and keep reflections realistic." : imageMode === "fusion" ? "Spray the graffiti from image 2 onto the car in image 1. Preserve the car shape and blend lighting naturally." : "Create a premium retail campaign visual for a running shoe, with clean lighting and Southeast Asia urban commuter context."}</textarea>
-    ${imageMode === "text" || imageMode === "fast" ? "" : imageSourceControls(multi ? 2 : 1)}
+    ${imageMode === "text" ? "" : imageSourceControls(multi ? 2 : 1)}
     <button class="primary" id="runImage">Create Image</button>`;
   for (let i = 0; i < (multi ? 2 : 1); i++) setupImageSource(i);
   $("runImage").onclick = runImage;
@@ -317,11 +315,11 @@ async function runImage() {
     setOutput("imageOutput", "", true);
     const model = $("imageModel").value, prompt = $("imagePrompt").value;
     const images = [];
-    if (!["text","fast"].includes(imageMode)) {
+    if (imageMode !== "text") {
       images.push(await collectImage(0));
       if (imageMode === "fusion") images.push(await collectImage(1));
     }
-    const data = await api("/api/image", { model, prompt, images, size: model === "z-image-turbo" ? "1024*1024" : "2K", n: 1 });
+    const data = await api("/api/image", { model, prompt, images, size: "2K", n: 1 });
     $("imageGallery").innerHTML = data.images.map((src) => `<a href="${src}" target="_blank"><img src="${src}" /></a>`).join("");
     setOutput("imageOutput", `Generated ${data.images.length} image(s).`);
     addRun("Image", model, prompt, data.images.join("\n"));

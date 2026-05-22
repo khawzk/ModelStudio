@@ -1,7 +1,7 @@
 const catalog = [
   ["Flagship LLM", ["qwen3-max", "qwen-plus", "qwen-flash"], "Reasoning, enterprise Q&A, proposal drafting, workflow automation."],
   ["Multimodal Understanding", ["qwen3.5-plus", "qwen-vl-max-latest", "qwen-vl-plus-latest"], "Image understanding, visual inspection, document screenshots."],
-  ["Image Generation & Editing", ["wan2.7-image-pro", "wan2.7-image", "z-image-turbo"], "Text-to-image, image edit, multi-image fusion, product assets."],
+  ["Image Generation & Editing", ["qwen-image-2.0-pro", "qwen-image-edit-plus", "wan2.7-image-pro"], "Text-to-image, image edit, multi-image fusion, product assets."],
   ["Video Generation", ["wan2.6-t2v", "wan2.7-i2v"], "Text-to-video and image-to-video async creative workflows."],
   ["Speech & Audio", ["qwen3-asr-flash", "qwen-audio-turbo"], "ASR, call transcription, speech translation positioning."],
 ];
@@ -258,13 +258,7 @@ async function directImage(data) {
   const cfg = regionConfig(data.region);
   const model = data.model || "qwen-image-2.0-pro";
   let payload;
-  if (model === "z-image-turbo") {
-    payload = {
-      model,
-      input: { messages: [{ role: "user", content: [{ text: data.prompt || "" }] }] },
-      parameters: { prompt_extend: false, size: data.size || "1024*1024" },
-    };
-  } else if (model.startsWith("qwen-image")) {
+  if (model.startsWith("qwen-image")) {
     const content = (data.images || []).filter(Boolean).map((image) => ({ image }));
     content.push({ text: data.prompt || "" });
     payload = { model, input: { messages: [{ role: "user", content }] }, parameters: { n: Number(data.n || 1), watermark: false } };
@@ -302,13 +296,6 @@ async function directVideo(data) {
   if (model === "happyhorse-1.0-t2v") payload.parameters.ratio = data.ratio || "16:9";
   const result = await requestJson(`${cfg.api}/services/aigc/video-generation/video-synthesis`, data.apiKey, payload, { asyncTask: true });
   return { taskId: result.output?.task_id, raw: result };
-}
-
-async function directTask(taskId) {
-  const cfg = regionConfig($("region").value);
-  const apiKey = $("apiKey").value.trim();
-  if (!apiKey) throw new Error("Paste a DashScope API key first.");
-  return requestJson(`${cfg.api}/tasks/${encodeURIComponent(taskId)}`, apiKey, null, { method: "GET" });
 }
 
 async function directAsr(data) {
@@ -511,7 +498,7 @@ function renderImage() {
   $("view-image").innerHTML = `
     <div class="section-head"><div><h2>Image Studio</h2><p class="hint">Qwen-powered image editing with upload/camera input, plus Wan creation and selected-area workflows.</p></div></div>
     <div class="tabs">
-      ${[["text","Text-to-image"],["edit","Image edit"],["fusion","Fusion"],["fast","Fast product"]].map(([id,label]) => `<button data-mode="${id}" class="${id === imageMode ? "active" : ""}">${label}</button>`).join("")}
+      ${[["text","Text-to-image"],["edit","Image edit"],["fusion","Fusion"]].map(([id,label]) => `<button data-mode="${id}" class="${id === imageMode ? "active" : ""}">${label}</button>`).join("")}
     </div>
     <div class="grid">
       <div class="panel" id="imageControls"></div>
@@ -542,15 +529,13 @@ function imageSourceControls(count = 1) {
 function renderImageControls() {
   const multi = imageMode === "fusion";
   const modelOptions =
-    imageMode === "fast"
-      ? "<option>z-image-turbo</option>"
-      : imageMode === "text"
+    imageMode === "text"
         ? "<option>qwen-image-2.0-pro</option><option>wan2.7-image-pro</option><option>wan2.7-image</option>"
         : "<option>qwen-image-edit-plus</option><option>qwen-image-edit-max</option><option>qwen-image-2.0-pro</option><option>qwen-image-edit</option>";
   $("imageControls").innerHTML = `
     <label>Model</label><select id="imageModel">${modelOptions}</select>
     <label>Prompt</label><textarea id="imagePrompt" rows="6">${imageMode === "edit" ? "Change the car color to matte graphite black and keep reflections realistic." : imageMode === "fusion" ? "Spray the graffiti from image 2 onto the car in image 1. Preserve the car shape and blend lighting naturally." : "Create a premium retail campaign visual for a running shoe, with clean lighting and Southeast Asia urban commuter context."}</textarea>
-    ${imageMode === "text" || imageMode === "fast" ? "" : imageSourceControls(multi ? 2 : 1)}
+    ${imageMode === "text" ? "" : imageSourceControls(multi ? 2 : 1)}
     <button class="primary" id="runImage">Create Image</button>`;
   for (let i = 0; i < (multi ? 2 : 1); i++) setupImageSource(i);
   $("runImage").onclick = runImage;
@@ -615,11 +600,11 @@ async function runImage() {
     setOutput("imageOutput", "", true);
     const model = $("imageModel").value, prompt = $("imagePrompt").value;
     const images = [];
-    if (!["text","fast"].includes(imageMode)) {
+    if (imageMode !== "text") {
       images.push(await collectImage(0));
       if (imageMode === "fusion") images.push(await collectImage(1));
     }
-    const data = await api("/api/image", { model, prompt, images, size: model === "z-image-turbo" ? "1024*1024" : "2K", n: 1 });
+    const data = await api("/api/image", { model, prompt, images, size: "2K", n: 1 });
     $("imageGallery").innerHTML = data.images.map((src) => `<a href="${src}" target="_blank"><img src="${src}" /></a>`).join("");
     setOutput("imageOutput", `Generated ${data.images.length} image(s).`);
     addRun("Image", model, prompt, data.images.join("\n"));
@@ -704,37 +689,17 @@ async function runVideo() {
     const data = await api("/api/video", { model, prompt, image: $("videoMode").value === "i2v" ? $("videoImage").value : "", resolution: $("videoResolution").value, duration: $("videoDuration").value, ratio: $("videoRatio").value });
     const taskId = data.taskId;
     if (!taskId) throw new Error(`Video task submission returned no task id.\n\n${JSON.stringify(data.raw || data, null, 2)}`);
-    $("videoStatus").textContent = `Task accepted: ${taskId}. Polling result...`;
-    addRun("Video task", model, prompt, `Task accepted: ${taskId}`);
-    for (let i = 0; i < 40; i++) {
-      await new Promise((r) => setTimeout(r, 6000));
-      let task;
-      try {
-        task = await directTask(taskId);
-      } catch (pollError) {
-        $("videoBar").style.width = "100%";
-        throw new Error([
-          `Video task was accepted, but browser-side polling failed.`,
-          ``,
-          `Task ID: ${taskId}`,
-          ``,
-          `This usually means the task polling endpoint is blocked from GitHub Pages by CORS/network policy, even though submission may have succeeded.`,
-          ``,
-          pollError.message,
-        ].join("\n"));
-      }
-      const status = task.output?.task_status || "UNKNOWN";
-      $("videoBar").style.width = status === "PENDING" ? "38%" : status === "RUNNING" ? "72%" : "100%";
-      $("videoStatus").textContent = status === "PENDING" || status === "RUNNING" ? "Rendering in Model Studio..." : status;
-      if (status === "SUCCEEDED") {
-        $("videoResult").src = task.output.video_url;
-        $("videoResult").hidden = false;
-        addRun("Video", model, prompt, task.output.video_url);
-        return;
-      }
-      if (status === "FAILED") throw new Error(task.output?.message || "Video task failed");
-    }
-    throw new Error(`Video task is still running after 4 minutes.\n\nTask ID: ${taskId}\n\nThe task may still complete in Model Studio later.`);
+    $("videoBar").style.width = "100%";
+    const output = [
+      "Video task accepted.",
+      "",
+      `Task ID: ${taskId}`,
+      `Model: ${model}`,
+      "",
+      "GitHub Pages does not auto-poll this task because DashScope task polling may be blocked by browser CORS. The submission succeeded; keep this task ID for checking from Model Studio console or a backend proxy.",
+    ].join("\n");
+    $("videoStatus").textContent = output;
+    addRun("Video task", model, prompt, output);
   } catch (e) { $("videoStatus").textContent = e.message; }
 }
 
