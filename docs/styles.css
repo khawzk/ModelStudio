@@ -117,7 +117,36 @@ h2 { margin: 0; font-size: 32px; letter-spacing: -.02em; }
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255,255,255,.055);
+  min-width: 0;
 }
+.card h3 { overflow-wrap: anywhere; }
+.card pre {
+  margin: 10px 0 0;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: #dce5f2;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.session-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.session-card {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 8px 18px;
+  align-items: start;
+  padding: 16px;
+}
+.session-card .pill { grid-row: span 3; width: max-content; }
+.session-card h3 { margin: 0; font-size: 18px; }
+.session-card .hint { margin: 0; }
+.session-card pre { grid-column: 2; max-height: 120px; }
 .models { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
 .pill {
   border: 1px solid rgba(255,176,118,.28);
@@ -160,6 +189,11 @@ button.ghost {
   cursor: pointer;
 }
 button.ghost.slim { margin-top: 10px; }
+button.ghost.compact {
+  width: auto;
+  min-width: 96px;
+  padding: 9px 14px;
+}
 .output {
   min-height: 220px;
   padding: 18px;
@@ -239,4 +273,11 @@ button.ghost.slim { margin-top: 10px; }
   }
   h1 { font-size: 33px; }
   .run-metric { text-align: left; }
+  .session-card {
+    grid-template-columns: 1fr;
+  }
+  .session-card .pill,
+  .session-card pre {
+    grid-column: 1;
+  }
 }

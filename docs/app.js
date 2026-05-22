@@ -45,6 +45,7 @@ async function api(path, body) {
   if (!data.apiKey) throw new Error("Paste a DashScope API key first.");
   if (path === "/api/chat") return directChat(data);
   if (path === "/api/vision") return directVision(data);
+  if (path === "/api/omni") return directOmni(data);
   if (path === "/api/image") return directImage(data);
   if (path === "/api/video") return directVideo(data);
   if (path === "/api/asr") return directAsr(data);
@@ -74,6 +75,55 @@ async function requestJson(url, apiKey, payload, options = {}) {
   } catch (error) {
     if (String(error.message || error).includes("Failed to fetch")) {
       throw new Error(`Browser request failed before Model Studio returned a response.\n\nLikely cause: this endpoint does not allow direct GitHub Pages browser calls for this operation, or the request was blocked by CORS/network policy.\n\n${corsHint}`);
+    }
+    throw error;
+  }
+}
+
+async function requestSse(url, apiKey, payload) {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let text = "";
+    let reasoning = "";
+    let usage = null;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === "[DONE]") continue;
+        const event = JSON.parse(data);
+        if (event.usage) usage = event.usage;
+        for (const choice of event.choices || []) {
+          const delta = choice.delta || {};
+          if (delta.reasoning_content) reasoning += delta.reasoning_content;
+          if (delta.content) text += delta.content;
+        }
+      }
+    }
+    return { text, reasoning, usage };
+  } catch (error) {
+    if (String(error.message || error).includes("Failed to fetch")) {
+      throw new Error(`Browser streaming request failed before Model Studio returned a response.\n\nLikely cause: CORS/network policy for direct GitHub Pages calls.\n\n${corsHint}`);
     }
     throw error;
   }
@@ -136,6 +186,27 @@ async function directVision(data) {
   };
   const result = await requestJson(`${cfg.compatible}/chat/completions`, data.apiKey, payload);
   return { text: result.choices?.[0]?.message?.content || "", raw: result };
+}
+
+async function directOmni(data) {
+  const cfg = regionConfig(data.region);
+  const content = [];
+  if (data.inputType === "audio") {
+    content.push({ type: "input_audio", input_audio: { data: data.audio || sampleAudioUrl, format: "wav" } });
+  } else if (data.inputType === "image") {
+    content.push({ type: "image_url", image_url: { url: data.image || "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg" } });
+  }
+  content.push({ type: "text", text: data.prompt || "Summarize the input and suggest one customer demo use case." });
+  const payload = {
+    model: data.model || "qwen3.5-omni-plus",
+    messages: [{ role: "user", content }],
+    stream: true,
+    stream_options: { include_usage: true },
+    modalities: ["text"],
+  };
+  if (payload.model === "qwen3-omni-flash") payload.enable_thinking = false;
+  const result = await requestSse(`${cfg.compatible}/chat/completions`, data.apiKey, payload);
+  return { text: result.text, reasoning: result.reasoning, usage: result.usage, model: payload.model };
 }
 
 async function directImage(data) {
@@ -290,51 +361,83 @@ function renderVision() {
 
 function renderOmni() {
   $("view-omni").innerHTML = `
-    <div class="section-head"><div><h2>Omni Models</h2><p class="hint">Realtime configuration for qwen3.5-livetranslate-flash-realtime.</p></div></div>
+    <div class="section-head"><div><h2>Omni Lab</h2><p class="hint">Test Qwen-Omni with text plus audio or image input directly from this page.</p></div></div>
     <div class="grid">
       <div class="panel">
-        <span class="pill">Realtime WebSocket</span>
-        <h3>LiveTranslate Session</h3>
-        <div class="models"><span class="pill">qwen3.5-livetranslate-flash-realtime</span><span class="pill">qwen3-asr-flash-realtime</span></div>
-        <label>Model</label><select id="omniModel"><option>qwen3.5-livetranslate-flash-realtime</option><option>qwen3-livetranslate-flash-realtime</option></select>
-        <label>Endpoint</label><input id="omniEndpoint" value="wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3.5-livetranslate-flash-realtime" readonly />
+        <span class="pill">OpenAI-compatible Chat Completions</span>
+        <h3>Omni Understanding</h3>
+        <div class="models"><span class="pill">qwen3.5-omni-plus</span><span class="pill">qwen3-omni-flash</span></div>
+        <label>Model</label><select id="omniModel"><option>qwen3.5-omni-plus</option><option>qwen3-omni-flash</option></select>
+        <label>Input type</label><select id="omniInputType"><option value="audio">Sample / uploaded audio</option><option value="image">Image URL</option><option value="text">Text only</option></select>
+        <div id="omniAudioBox">
+          <label>Audio file</label><input id="omniFile" type="file" accept=".wav,.mp3,audio/*" />
+          <audio id="omniSamplePlayer" controls src="${sampleAudioUrl}"></audio>
+          <button class="ghost slim" id="useOmniSample">Use Sample WAV</button>
+        </div>
+        <div id="omniImageBox" hidden>
+          <label>Image URL</label><input id="omniImage" value="https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg" />
+        </div>
+        <label>Prompt</label><textarea id="omniPrompt" rows="5">Summarize the input, identify what modality signals matter, and recommend one Alibaba Cloud customer demo angle.</textarea>
+        <button class="primary" id="runOmni">Run Omni Test</button>
+      </div>
+      <div class="output" id="omniOutput">Use the sample WAV, upload an audio file, or switch to image/text input. This uses Qwen-Omni chat completions, so it is testable from GitHub Pages when CORS allows the REST call.</div>
+    </div>
+    <div class="cards omni-cases">
+      <article class="card">
+        <span class="pill">Audio + Text</span>
+        <h3>Call Understanding</h3>
+        <p class="hint">Analyze customer audio with text instructions for summaries, intent, product fit, and follow-up actions.</p>
+      </article>
+      <article class="card">
+        <span class="pill">Image + Text</span>
+        <h3>Visual Reasoning</h3>
+        <p class="hint">Use an image with a prompt to test multimodal inspection, marketing review, or field-service explanations.</p>
+      </article>
+    </div>`;
+  $("omniInputType").onchange = () => {
+    const type = $("omniInputType").value;
+    $("omniAudioBox").hidden = type !== "audio";
+    $("omniImageBox").hidden = type !== "image";
+  };
+  $("useOmniSample").onclick = async () => {
+    await loadSampleAudioDataUrl();
+    setOutput("omniOutput", "Sample WAV ready. Click Run Omni Test.");
+  };
+  $("runOmni").onclick = runOmni;
+}
+
+async function runOmni() {
+  try {
+    setOutput("omniOutput", "", true);
+    const inputType = $("omniInputType").value;
+    let audio = "";
+    if (inputType === "audio") audio = await readFileAsDataUrl($("omniFile").files[0]) || await loadSampleAudioDataUrl();
+    const data = await api("/api/omni", {
+      model: $("omniModel").value,
+      inputType,
+      audio,
+      image: $("omniImage")?.value || "",
+      prompt: $("omniPrompt").value,
+    });
+    const output = [
+      data.reasoning ? `Reasoning:\n${data.reasoning}\n` : "",
+      data.text || "(No text returned.)",
+      data.usage ? `\n\nUsage:\n${JSON.stringify(data.usage, null, 2)}` : "",
+    ].join("").trim();
+    setOutput("omniOutput", output);
+    addRun("Omni", data.model, inputType, output);
+  } catch (e) {
+    setOutput("omniOutput", e.message);
+  }
+}
+
+function renderLiveTranslateReference() {
+  return `
         <div class="row">
           <div><label>Source language</label><select id="omniSource"><option value="en">English</option><option value="zh">Chinese</option><option value="ms">Malay</option><option value="id">Indonesian</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="fr">French</option><option value="de">German</option><option value="es">Spanish</option><option value="th">Thai</option></select></div>
           <div><label>Target language</label><select id="omniTarget"><option value="zh">Chinese</option><option value="en">English</option><option value="ms">Malay</option><option value="id">Indonesian</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="fr">French</option><option value="de">German</option><option value="es">Spanish</option><option value="th">Thai</option></select></div>
         </div>
-        <label>PCM WAV file</label><input id="omniFile" type="file" accept=".wav,audio/wav,audio/x-wav" />
-        <audio id="omniSamplePlayer" controls src="${sampleAudioUrl}"></audio>
-        <button class="ghost slim" id="useOmniSample">Use Sample WAV</button>
-        <button class="primary" id="runOmniRealtime">Check Browser Realtime Support</button>
-        <button class="ghost slim" id="buildOmniSession">Show Session Payload</button>
-      </div>
-      <div class="output" id="omniOutput">Most Model Studio REST demos run directly from this page. Realtime LiveTranslate still needs a proxy because browser WebSocket cannot attach the required Authorization header.</div>
-    </div>
-    <div class="cards omni-cases">
-      <article class="card">
-        <span class="pill">Input events</span>
-        <h3>Audio + Optional Image Context</h3>
-        <p class="hint">Send PCM audio chunks through <code>input_audio_buffer.append</code>. Send optional image frames through <code>input_image_buffer.append</code> for visual disambiguation.</p>
-      </article>
-      <article class="card">
-        <span class="pill">Output events</span>
-        <h3>Translated Text + Audio</h3>
-        <p class="hint">Text-only sessions return <code>response.text.done</code>. Audio sessions stream <code>response.audio.delta</code> and final transcript events.</p>
-      </article>
-      <article class="card">
-        <span class="pill">Customer cases</span>
-        <h3>Where It Fits</h3>
-        <p class="hint">Cross-border telesales calls, webinars, livestream product pitches, internal bilingual training, and noisy support calls where visual context helps translation.</p>
-      </article>
-    </div>`;
-  updateOmniEndpoint();
-  $("omniModel").onchange = updateOmniEndpoint;
-  $("useOmniSample").onclick = async () => {
-    await loadSampleAudioDataUrl();
-    setOutput("omniOutput", "Sample WAV loaded for realtime payload testing. Browser-only Pages can show the session payload, but actual realtime streaming still needs the Python WebSocket proxy.");
-  };
-  $("buildOmniSession").onclick = buildOmniSession;
-  $("runOmniRealtime").onclick = runOmniRealtime;
+  `;
 }
 
 function realtimeBaseUrl() {
@@ -611,14 +714,22 @@ function renderSpeech() {
 
 function renderSession() {
   $("view-session").innerHTML = `
-    <div class="section-head"><div><h2>Session</h2><p class="hint">Captured outputs from this showcase session.</p></div></div>
-    <div class="cards">${runs.map((run) => `
-      <article class="card">
+    <div class="section-head">
+      <div><h2>Session</h2><p class="hint">Captured outputs from this showcase session.</p></div>
+      <button class="ghost compact" id="clearSession">Clear</button>
+    </div>
+    <div class="session-list">${runs.map((run) => `
+      <article class="card session-card">
         <span class="pill">${run.type}</span>
         <h3>${run.model}</h3>
         <p class="hint">${escapeHtml(run.time)}</p>
         <pre>${escapeHtml((run.output || "").slice(0, 700))}</pre>
       </article>`).join("") || '<p class="hint">No runs captured yet.</p>'}</div>`;
+  $("clearSession").onclick = () => {
+    runs = [];
+    $("runCount").textContent = "0";
+    renderSession();
+  };
 }
 
 function boot() {
