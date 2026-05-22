@@ -2,7 +2,6 @@ const catalog = [
   ["Flagship LLM", ["qwen3-max", "qwen-plus", "qwen-flash"], "Reasoning, enterprise Q&A, proposal drafting, workflow automation."],
   ["Multimodal Understanding", ["qwen3.5-plus", "qwen-vl-max-latest", "qwen-vl-plus-latest"], "Image understanding, visual inspection, document screenshots."],
   ["Image Generation & Editing", ["qwen-image-2.0-pro", "qwen-image-edit-plus", "wan2.7-image-pro"], "Text-to-image, image edit, multi-image fusion, product assets."],
-  ["Video Generation", ["wan2.6-t2v", "wan2.7-i2v"], "Text-to-video and image-to-video async creative workflows."],
   ["Speech & Audio", ["qwen3-asr-flash", "qwen-audio-turbo"], "ASR, call transcription, speech translation positioning."],
 ];
 
@@ -34,7 +33,6 @@ const REGIONS = {
 
 const corsHint = "If this request is blocked by browser CORS, run the Python proxy version from AI_Model_Studio_Portal/server.py for this specific module.";
 const sampleAudioUrl = "assets/modelstudio_sample.wav";
-const modelStudioConsoleUrl = "https://modelstudio.console.alibabacloud.com/ap-southeast-1/";
 let sampleAudioDataUrl = "";
 
 const textCases = {
@@ -66,11 +64,11 @@ Return:
 3. Reference architecture.
 4. Security and governance response.
 5. Pricing / cost-control narrative.
-6. Demo script that uses text, vision, image editing, video, speech, and omni models.
+6. Demo script that uses text, vision, image editing, speech, and omni models.
 7. Red-team objections and strong rebuttals.`,
   migration: `Analyze this AI migration case.
 
-Customer runs multiple disconnected AI pilots: one OpenAI chatbot, one local OCR model, one video generation SaaS, and one speech transcription vendor. Costs are rising, data governance is weak, and leadership wants a single AI platform on Alibaba Cloud.
+Customer runs multiple disconnected AI pilots: one OpenAI chatbot, one local OCR model, one image generation SaaS, and one speech transcription vendor. Costs are rising, data governance is weak, and leadership wants a single AI platform on Alibaba Cloud.
 
 Build a migration plan:
 1. Current-state diagnosis.
@@ -93,7 +91,6 @@ async function api(path, body) {
   if (path === "/api/vision") return directVision(data);
   if (path === "/api/omni") return directOmni(data);
   if (path === "/api/image") return directImage(data);
-  if (path === "/api/video") return directVideo(data);
   if (path === "/api/asr") return directAsr(data);
   throw new Error(`Unsupported static route: ${path}`);
 }
@@ -274,29 +271,6 @@ async function directImage(data) {
   }
   const result = await requestJson(`${cfg.api}/services/aigc/multimodal-generation/generation`, data.apiKey, payload);
   return { images: extractImages(result), raw: result };
-}
-
-async function directVideo(data) {
-  const cfg = regionConfig(data.region);
-  const model = data.model || "happyhorse-1.0-t2v";
-  const input = { prompt: data.prompt || "" };
-  if (data.image) {
-    if (model === "wan2.7-i2v") input.media = [{ type: "first_frame", url: data.image }];
-    else input.img_url = data.image;
-  }
-  const payload = {
-    model,
-    input,
-    parameters: {
-      resolution: data.resolution || "720P",
-      duration: Number(data.duration || 5),
-      prompt_extend: true,
-      watermark: false,
-    },
-  };
-  if (model === "happyhorse-1.0-t2v") payload.parameters.ratio = data.ratio || "16:9";
-  const result = await requestJson(`${cfg.api}/services/aigc/video-generation/video-synthesis`, data.apiKey, payload, { asyncTask: true });
-  return { taskId: result.output?.task_id, raw: result };
 }
 
 async function directAsr(data) {
@@ -650,54 +624,13 @@ async function runOmniRealtime() {
       "",
       "This GitHub Pages version is pure static BYOK. Browser JavaScript can call Model Studio REST endpoints with your key, but it cannot set the Authorization header on a native WebSocket connection.",
       "",
-      "For LiveTranslate realtime WAV streaming, use the Python proxy version in AI_Model_Studio_Portal/server.py. Text, vision, image, video, and ASR are wired for direct page execution.",
+      "For LiveTranslate realtime WAV streaming, use the Python proxy version in AI_Model_Studio_Portal/server.py. Text, vision, image, and ASR are wired for direct page execution.",
     ].join("\n");
     setOutput("omniOutput", output);
     addRun("Omni Realtime Check", model, `${sourceLang} to ${targetLang}`, output);
   } catch (e) {
     setOutput("omniOutput", e.message);
   }
-}
-
-function renderVideo() {
-  $("view-video").innerHTML = `
-    <div class="section-head"><div><h2>Video Studio</h2><p class="hint">Async Wan video workflow without noisy polling output.</p></div></div>
-    <div class="grid">
-      <div class="panel">
-        <label>Mode</label><select id="videoMode"><option value="t2v">Text-to-video</option><option value="i2v">Image-to-video</option></select>
-        <label>Model</label><select id="videoModel"><option>happyhorse-1.0-t2v</option><option>wan2.6-t2v</option></select>
-        <label>Prompt</label><textarea id="videoPrompt" rows="6">A cinematic product video of a premium running shoe moving through Kuala Lumpur at night, clean commercial style.</textarea>
-        <label>First frame URL</label><input id="videoImage" value="https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20251229/pjeqdf/car.webp" hidden />
-        <div class="row"><div><label>Resolution</label><select id="videoResolution"><option>720P</option><option>1080P</option></select></div><div><label>Duration</label><input id="videoDuration" type="number" min="3" max="15" value="5" /></div></div>
-        <label>Ratio</label><select id="videoRatio"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:3</option><option>3:4</option></select>
-        <button class="primary" id="runVideo">Submit Video</button>
-      </div>
-      <div><video id="videoResult" controls hidden></video><div class="bar"><span id="videoBar"></span></div><div class="status" id="videoStatus">Ready.</div></div>
-    </div>`;
-  $("videoMode").onchange = () => {
-    const i2v = $("videoMode").value === "i2v";
-    $("videoModel").innerHTML = i2v ? "<option>wan2.7-i2v</option><option>wan2.6-i2v-flash</option>" : "<option>happyhorse-1.0-t2v</option><option>wan2.6-t2v</option>";
-    $("videoImage").hidden = !i2v;
-  };
-  $("runVideo").onclick = runVideo;
-}
-
-async function runVideo() {
-  try {
-    $("videoStatus").textContent = "Submitting task...";
-    $("videoBar").style.width = "20%";
-    const model = $("videoModel").value, prompt = $("videoPrompt").value;
-    const data = await api("/api/video", { model, prompt, image: $("videoMode").value === "i2v" ? $("videoImage").value : "", resolution: $("videoResolution").value, duration: $("videoDuration").value, ratio: $("videoRatio").value });
-    const taskId = data.taskId;
-    if (!taskId) throw new Error(`Video task submission returned no task id.\n\n${JSON.stringify(data.raw || data, null, 2)}`);
-    $("videoBar").style.width = "100%";
-    const output = `Video task accepted.\n\nTask ID: ${taskId}\nModel: ${model}\n\nOpen Model Studio Console and use the task ID to check the generated video result.`;
-    $("videoStatus").innerHTML = `
-      <div>${escapeHtml(output)}</div>
-      <a class="console-link" href="${modelStudioConsoleUrl}" target="_blank" rel="noreferrer">Open Model Studio Console</a>
-    `;
-    addRun("Video task", model, prompt, output);
-  } catch (e) { $("videoStatus").textContent = e.message; }
 }
 
 function renderSpeech() {
@@ -751,7 +684,7 @@ function renderSession() {
 }
 
 function boot() {
-  renderText(); renderVision(); renderOmni(); renderImage(); renderVideo(); renderSpeech(); renderSession();
+  renderText(); renderVision(); renderOmni(); renderImage(); renderSpeech(); renderSession();
   document.querySelectorAll("nav button").forEach((btn) => btn.onclick = () => setView(btn.dataset.view));
   $("region").onchange = updateOmniEndpoint;
 }

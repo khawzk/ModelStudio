@@ -2,7 +2,7 @@
 
 Custom demo console for Alibaba Cloud Telesales MYS.
 
-The app presents Model Studio capabilities through a polished web interface across Qwen, Wan, vision, image, video, speech, and realtime translation models. It does not use Streamlit. The frontend is plain HTML/CSS/JS and the Python backend proxies Model Studio API calls when browser-side calls need a server, such as realtime WebSocket LiveTranslate.
+The app presents Model Studio capabilities through a polished web interface across Qwen, Wan image, vision, image, speech, and realtime translation models. It does not use Streamlit. The frontend is plain HTML/CSS/JS and the Python backend proxies Model Studio API calls when browser-side calls need a server, such as realtime WebSocket LiveTranslate.
 
 ## Key Principle
 
@@ -16,7 +16,6 @@ The app does not require a committed API key and does not require Terraform-mana
 - Vision Lab: image upload or URL analysis with Qwen multimodal models.
 - Omni Models: realtime WAV translation through `qwen3.5-livetranslate-flash-realtime`.
 - Image Studio: Qwen image editing, upload/camera input, image fusion, and image generation.
-- Video Studio: async text-to-video and image-to-video workflow.
 - Speech AI: audio upload and ASR with Qwen speech models.
 - Session: run history for customer-facing demo evidence.
 
@@ -103,5 +102,4 @@ Use the region that matches the user's Model Studio entitlement.
 
 - Model Studio models: https://www.alibabacloud.com/help/en/model-studio/models
 - Wan image generation and editing: https://www.alibabacloud.com/help/en/model-studio/wan-image-generation-and-editing-api-reference
-- Wan image-to-video: https://www.alibabacloud.com/help/doc-detail/3025059.html
 - LiveTranslate realtime: https://www.alibabacloud.com/help/en/model-studio/qwen3-5-livetranslate-flash-realtime

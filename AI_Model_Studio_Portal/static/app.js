@@ -2,7 +2,6 @@ const catalog = [
   ["Flagship LLM", ["qwen3-max", "qwen-plus", "qwen-flash"], "Reasoning, enterprise Q&A, proposal drafting, workflow automation."],
   ["Multimodal Understanding", ["qwen3.5-plus", "qwen-vl-max-latest", "qwen-vl-plus-latest"], "Image understanding, visual inspection, document screenshots."],
   ["Image Generation & Editing", ["qwen-image-2.0-pro", "qwen-image-edit-plus", "wan2.7-image-pro"], "Text-to-image, image edit, multi-image fusion, product assets."],
-  ["Video Generation", ["wan2.6-t2v", "wan2.7-i2v"], "Text-to-video and image-to-video async creative workflows."],
   ["Speech & Audio", ["qwen3-asr-flash", "qwen-audio-turbo"], "ASR, call transcription, speech translation positioning."],
 ];
 
@@ -43,11 +42,11 @@ Return:
 3. Reference architecture.
 4. Security and governance response.
 5. Pricing / cost-control narrative.
-6. Demo script that uses text, vision, image editing, video, speech, and omni models.
+6. Demo script that uses text, vision, image editing, speech, and omni models.
 7. Red-team objections and strong rebuttals.`,
   migration: `Analyze this AI migration case.
 
-Customer runs multiple disconnected AI pilots: one OpenAI chatbot, one local OCR model, one video generation SaaS, and one speech transcription vendor. Costs are rising, data governance is weak, and leadership wants a single AI platform on Alibaba Cloud.
+Customer runs multiple disconnected AI pilots: one OpenAI chatbot, one local OCR model, one image generation SaaS, and one speech transcription vendor. Costs are rising, data governance is weak, and leadership wants a single AI platform on Alibaba Cloud.
 
 Build a migration plan:
 1. Current-state diagnosis.
@@ -380,55 +379,6 @@ async function runOmniRealtime() {
   }
 }
 
-function renderVideo() {
-  $("view-video").innerHTML = `
-    <div class="section-head"><div><h2>Video Studio</h2><p class="hint">Async Wan video workflow without noisy polling output.</p></div></div>
-    <div class="grid">
-      <div class="panel">
-        <label>Mode</label><select id="videoMode"><option value="t2v">Text-to-video</option><option value="i2v">Image-to-video</option></select>
-        <label>Model</label><select id="videoModel"><option>happyhorse-1.0-t2v</option><option>wan2.6-t2v</option></select>
-        <label>Prompt</label><textarea id="videoPrompt" rows="6">A cinematic product video of a premium running shoe moving through Kuala Lumpur at night, clean commercial style.</textarea>
-        <label>First frame URL</label><input id="videoImage" value="https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20251229/pjeqdf/car.webp" hidden />
-        <div class="row"><div><label>Resolution</label><select id="videoResolution"><option>720P</option><option>1080P</option></select></div><div><label>Duration</label><input id="videoDuration" type="number" min="3" max="15" value="5" /></div></div>
-        <label>Ratio</label><select id="videoRatio"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:3</option><option>3:4</option></select>
-        <button class="primary" id="runVideo">Submit Video</button>
-      </div>
-      <div><video id="videoResult" controls hidden></video><div class="bar"><span id="videoBar"></span></div><div class="status" id="videoStatus">Ready.</div></div>
-    </div>`;
-  $("videoMode").onchange = () => {
-    const i2v = $("videoMode").value === "i2v";
-    $("videoModel").innerHTML = i2v ? "<option>wan2.7-i2v</option><option>wan2.6-i2v-flash</option>" : "<option>happyhorse-1.0-t2v</option><option>wan2.6-t2v</option>";
-    $("videoImage").hidden = !i2v;
-  };
-  $("runVideo").onclick = runVideo;
-}
-
-async function runVideo() {
-  try {
-    $("videoStatus").textContent = "Submitting task...";
-    $("videoBar").style.width = "20%";
-    const model = $("videoModel").value, prompt = $("videoPrompt").value;
-    const data = await api("/api/video", { model, prompt, image: $("videoMode").value === "i2v" ? $("videoImage").value : "", resolution: $("videoResolution").value, duration: $("videoDuration").value, ratio: $("videoRatio").value });
-    const taskId = data.taskId;
-    $("videoStatus").textContent = `Task accepted. Waiting for result...`;
-    for (let i = 0; i < 80; i++) {
-      await new Promise((r) => setTimeout(r, 6000));
-      const url = `/api/task?id=${encodeURIComponent(taskId)}&region=${$("region").value}&apiKey=${encodeURIComponent($("apiKey").value.trim())}`;
-      const task = await fetch(url).then((r) => r.json());
-      const status = task.output?.task_status || "UNKNOWN";
-      $("videoBar").style.width = status === "PENDING" ? "38%" : status === "RUNNING" ? "72%" : "100%";
-      $("videoStatus").textContent = status === "PENDING" || status === "RUNNING" ? "Rendering in Model Studio..." : status;
-      if (status === "SUCCEEDED") {
-        $("videoResult").src = task.output.video_url;
-        $("videoResult").hidden = false;
-        addRun("Video", model, prompt, task.output.video_url);
-        return;
-      }
-      if (status === "FAILED") throw new Error(task.output?.message || "Video task failed");
-    }
-  } catch (e) { $("videoStatus").textContent = e.message; }
-}
-
 function renderSpeech() {
   $("view-speech").innerHTML = `
     <div class="section-head"><div><h2>Speech AI</h2><p class="hint">Context-aware ASR for multilingual customer calls.</p></div></div>
@@ -466,7 +416,7 @@ function renderSession() {
 }
 
 function boot() {
-  renderText(); renderVision(); renderOmni(); renderImage(); renderVideo(); renderSpeech(); renderSession();
+  renderText(); renderVision(); renderOmni(); renderImage(); renderSpeech(); renderSession();
   document.querySelectorAll("nav button").forEach((btn) => btn.onclick = () => setView(btn.dataset.view));
   $("region").onchange = updateOmniEndpoint;
 }
