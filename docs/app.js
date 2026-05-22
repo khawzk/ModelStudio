@@ -33,6 +33,8 @@ const REGIONS = {
 };
 
 const corsHint = "If this request is blocked by browser CORS, run the Python proxy version from AI_Model_Studio_Portal/server.py for this specific module.";
+const sampleAudioUrl = "assets/modelstudio_sample.wav";
+let sampleAudioDataUrl = "";
 
 function escapeHtml(value = "") {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
@@ -71,10 +73,23 @@ async function requestJson(url, apiKey, payload, options = {}) {
     return data;
   } catch (error) {
     if (String(error.message || error).includes("Failed to fetch")) {
-      throw new Error(`${error.message}\n\n${corsHint}`);
+      throw new Error(`Browser request failed before Model Studio returned a response.\n\nLikely cause: this endpoint does not allow direct GitHub Pages browser calls for this operation, or the request was blocked by CORS/network policy.\n\n${corsHint}`);
     }
     throw error;
   }
+}
+
+async function loadSampleAudioDataUrl() {
+  if (sampleAudioDataUrl) return sampleAudioDataUrl;
+  const res = await fetch(sampleAudioUrl);
+  if (!res.ok) throw new Error(`Could not load sample WAV: ${res.status} ${res.statusText}`);
+  const blob = await res.blob();
+  sampleAudioDataUrl = await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+  return sampleAudioDataUrl;
 }
 
 function extractImages(payload) {
@@ -288,6 +303,8 @@ function renderOmni() {
           <div><label>Target language</label><select id="omniTarget"><option value="zh">Chinese</option><option value="en">English</option><option value="ms">Malay</option><option value="id">Indonesian</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="fr">French</option><option value="de">German</option><option value="es">Spanish</option><option value="th">Thai</option></select></div>
         </div>
         <label>PCM WAV file</label><input id="omniFile" type="file" accept=".wav,audio/wav,audio/x-wav" />
+        <audio id="omniSamplePlayer" controls src="${sampleAudioUrl}"></audio>
+        <button class="ghost slim" id="useOmniSample">Use Sample WAV</button>
         <button class="primary" id="runOmniRealtime">Check Browser Realtime Support</button>
         <button class="ghost slim" id="buildOmniSession">Show Session Payload</button>
       </div>
@@ -312,6 +329,10 @@ function renderOmni() {
     </div>`;
   updateOmniEndpoint();
   $("omniModel").onchange = updateOmniEndpoint;
+  $("useOmniSample").onclick = async () => {
+    await loadSampleAudioDataUrl();
+    setOutput("omniOutput", "Sample WAV loaded for realtime payload testing. Browser-only Pages can show the session payload, but actual realtime streaming still needs the Python WebSocket proxy.");
+  };
   $("buildOmniSession").onclick = buildOmniSession;
   $("runOmniRealtime").onclick = runOmniRealtime;
 }
@@ -472,13 +493,14 @@ function buildOmniSession() {
 async function runOmniRealtime() {
   try {
     const file = $("omniFile").files[0];
-    if (!file) throw new Error("Upload a WAV file first.");
+    const sampleLoaded = Boolean(sampleAudioDataUrl);
+    if (!file && !sampleLoaded) throw new Error("Upload a WAV file first, or click Use Sample WAV.");
     const model = $("omniModel").value;
     const sourceLang = $("omniSource").value;
     const targetLang = $("omniTarget").value;
     const output = [
       `Model: ${model}`,
-      `WAV: ${file.name}`,
+      `WAV: ${file?.name || "modelstudio_sample.wav"}`,
       `Language: ${sourceLang} to ${targetLang}`,
       "",
       "This GitHub Pages version is pure static BYOK. Browser JavaScript can call Model Studio REST endpoints with your key, but it cannot set the Authorization header on a native WebSocket connection.",
@@ -522,10 +544,26 @@ async function runVideo() {
     const model = $("videoModel").value, prompt = $("videoPrompt").value;
     const data = await api("/api/video", { model, prompt, image: $("videoMode").value === "i2v" ? $("videoImage").value : "", resolution: $("videoResolution").value, duration: $("videoDuration").value, ratio: $("videoRatio").value });
     const taskId = data.taskId;
-    $("videoStatus").textContent = `Task accepted. Waiting for result...`;
-    for (let i = 0; i < 80; i++) {
+    if (!taskId) throw new Error(`Video task submission returned no task id.\n\n${JSON.stringify(data.raw || data, null, 2)}`);
+    $("videoStatus").textContent = `Task accepted: ${taskId}. Polling result...`;
+    addRun("Video task", model, prompt, `Task accepted: ${taskId}`);
+    for (let i = 0; i < 40; i++) {
       await new Promise((r) => setTimeout(r, 6000));
-      const task = await directTask(taskId);
+      let task;
+      try {
+        task = await directTask(taskId);
+      } catch (pollError) {
+        $("videoBar").style.width = "100%";
+        throw new Error([
+          `Video task was accepted, but browser-side polling failed.`,
+          ``,
+          `Task ID: ${taskId}`,
+          ``,
+          `This usually means the task polling endpoint is blocked from GitHub Pages by CORS/network policy, even though submission may have succeeded.`,
+          ``,
+          pollError.message,
+        ].join("\n"));
+      }
       const status = task.output?.task_status || "UNKNOWN";
       $("videoBar").style.width = status === "PENDING" ? "38%" : status === "RUNNING" ? "72%" : "100%";
       $("videoStatus").textContent = status === "PENDING" || status === "RUNNING" ? "Rendering in Model Studio..." : status;
@@ -537,6 +575,7 @@ async function runVideo() {
       }
       if (status === "FAILED") throw new Error(task.output?.message || "Video task failed");
     }
+    throw new Error(`Video task is still running after 4 minutes.\n\nTask ID: ${taskId}\n\nThe task may still complete in Model Studio later.`);
   } catch (e) { $("videoStatus").textContent = e.message; }
 }
 
@@ -549,14 +588,20 @@ function renderSpeech() {
         <label>Language hint</label><select id="asrLang"><option value="auto">Auto</option><option value="en">English</option><option value="zh">Chinese</option><option value="ms">Malay</option><option value="id">Indonesian</option></select>
         <label>Context</label><textarea id="asrContext" rows="4">Alibaba Cloud, Model Studio, Qwen, Wan, DashScope, Telesales MYS</textarea>
         <label>Audio file</label><input id="asrFile" type="file" accept="audio/*" />
+        <audio id="asrSamplePlayer" controls src="${sampleAudioUrl}"></audio>
+        <button class="ghost slim" id="useAsrSample">Use Sample WAV</button>
         <button class="primary" id="runAsr">Transcribe</button>
       </div>
       <div class="output" id="asrOutput">Ready.</div>
     </div>`;
+  $("useAsrSample").onclick = async () => {
+    await loadSampleAudioDataUrl();
+    setOutput("asrOutput", "Sample WAV loaded. Click Transcribe to test ASR.");
+  };
   $("runAsr").onclick = async () => {
     try {
       setOutput("asrOutput", "", true);
-      const audio = await readFileAsDataUrl($("asrFile").files[0]);
+      const audio = await readFileAsDataUrl($("asrFile").files[0]) || await loadSampleAudioDataUrl();
       const data = await api("/api/asr", { model: $("asrModel").value, audio, language: $("asrLang").value, context: $("asrContext").value });
       setOutput("asrOutput", data.text || JSON.stringify(data.raw, null, 2));
       addRun("Speech", $("asrModel").value, "Audio transcription", data.text);

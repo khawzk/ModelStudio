@@ -44,6 +44,12 @@ input, select, textarea {
   background: rgba(255,255,255,.065);
   color: #f9fafb;
 }
+audio {
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.08);
+}
 option {
   color: #111827;
 }

@@ -80,7 +80,7 @@ This repo includes a Pages workflow in `.github/workflows/pages.yml`. It publish
 https://khawzk.github.io/ModelStudio/
 ```
 
-The Pages version is BYOK and calls Model Studio REST endpoints directly from the browser where supported. The local Python version remains useful for realtime WebSocket LiveTranslate because native browser WebSocket cannot attach the required `Authorization` header.
+The Pages version is BYOK and calls Model Studio REST endpoints directly from the browser where supported. It also includes a sample 16 kHz mono PCM WAV for ASR demos. The local Python version remains useful for realtime WebSocket LiveTranslate and browser CORS fallbacks because native browser WebSocket cannot attach the required `Authorization` header.
 
 Enable it in GitHub:
 

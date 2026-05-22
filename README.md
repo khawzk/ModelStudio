@@ -41,7 +41,9 @@ To enable:
 3. Set the source to GitHub Actions.
 4. Push to `main`.
 
-Most REST-based modules run directly from GitHub Pages: text, vision, image, video task submission/polling, and ASR. Realtime LiveTranslate still needs the Python proxy because browser WebSocket cannot set the required `Authorization` header.
+Most REST-based modules run directly from GitHub Pages: text, vision, image, video task submission, and ASR. The page includes a sample 16 kHz mono PCM WAV for speech demos.
+
+Some async polling endpoints may still be blocked by browser CORS from GitHub Pages. In that case, the UI keeps the accepted video task ID visible instead of failing silently. Realtime LiveTranslate still needs the Python proxy because browser WebSocket cannot set the required `Authorization` header.
 
 ## Lightweight ECS Option
 
