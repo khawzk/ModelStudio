@@ -30,7 +30,8 @@ body {
   border-right: 1px solid rgba(255,255,255,.1);
   overflow: auto;
 }
-.brand { margin-bottom: 28px; }
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.brand img { width: 42px; height: 42px; border-radius: 12px; }
 .brand span { display: block; color: #ffb076; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; font-weight: 800; }
 .brand strong { display: block; margin-top: 6px; font-size: 24px; }
 label { display: block; margin: 16px 0 7px; color: rgba(255,255,255,.62); font-size: 12px; text-transform: uppercase; letter-spacing: .09em; }
@@ -180,6 +181,7 @@ button.ghost.slim { margin-top: 10px; }
   background: #05070c;
 }
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.mini-tabs { margin: 14px 0 2px; }
 .tabs button {
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.055);

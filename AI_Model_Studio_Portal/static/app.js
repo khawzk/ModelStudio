@@ -14,6 +14,51 @@ let cameraCaptures = {};
 const $ = (id) => document.getElementById(id);
 const state = () => ({ region: $("region").value, apiKey: $("apiKey").value.trim() });
 
+const textCases = {
+  warroom: `You are Qwen 3.7 Max acting as a principal Alibaba Cloud solution architect in a live executive war room.
+
+Customer: A Malaysian retail bank wants an AI telesales platform in 6 weeks. Constraints:
+- 3.2M customer profiles, 18 months call history, Bahasa Malaysia + English call transcripts.
+- Data must stay in Malaysia/Singapore approved regions; no raw PII in prompts.
+- Existing CRM is Salesforce, data lake is MaxCompute, contact center exports WAV files nightly.
+- Compliance asks for auditability, hallucination controls, and explainable next-best-action recommendations.
+- Business wants +12% conversion, -20% manual call prep time, and measurable agent adoption.
+
+Produce:
+1. A sharp executive recommendation in 5 bullets.
+2. Target architecture using Alibaba Cloud Model Studio, Qwen, ASR, RAG, feature store/scoring, and human approval.
+3. A phased 6-week PoC plan with owners, acceptance criteria, and measurable KPIs.
+4. Risk register with mitigation for privacy, model quality, latency, sales adoption, and regulatory review.
+5. A decision matrix comparing: rules engine, classic ML lead scoring, LLM-only workflow, and hybrid Qwen + RAG + scoring.
+6. A final "next meeting close" script for telesales MYS to secure customer buy-in.
+
+Make it commercially grounded, technically specific, and concise enough to paste into a customer follow-up email.`,
+  rfp: `Draft a high-quality RFP response strategy for Alibaba Cloud Model Studio.
+
+Scenario: A regional e-commerce group wants a multimodal AI platform for product content, livestream clips, seller support, and multilingual customer service. They compare Alibaba Cloud against OpenAI, AWS, and Google.
+
+Return:
+1. Win themes.
+2. Differentiated Model Studio capabilities.
+3. Reference architecture.
+4. Security and governance response.
+5. Pricing / cost-control narrative.
+6. Demo script that uses text, vision, image editing, video, speech, and omni models.
+7. Red-team objections and strong rebuttals.`,
+  migration: `Analyze this AI migration case.
+
+Customer runs multiple disconnected AI pilots: one OpenAI chatbot, one local OCR model, one video generation SaaS, and one speech transcription vendor. Costs are rising, data governance is weak, and leadership wants a single AI platform on Alibaba Cloud.
+
+Build a migration plan:
+1. Current-state diagnosis.
+2. Target-state Model Studio architecture.
+3. Model selection table.
+4. Integration sequence.
+5. Data governance and PII strategy.
+6. Migration risks and rollback plan.
+7. 30/60/90 day roadmap.`,
+};
+
 function escapeHtml(value = "") {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 }
@@ -42,15 +87,26 @@ function setView(view) {
 
 function renderText() {
   $("view-text").innerHTML = `
-    <div class="section-head"><div><h2>Text Intelligence</h2><p class="hint">Turn customer requirements into crisp scoping output.</p></div></div>
+    <div class="section-head"><div><h2>Text Intelligence</h2><p class="hint">Use Qwen 3.7 Max for complex multi-constraint solution design and executive-ready PoC planning.</p></div></div>
     <div class="grid">
       <div class="panel">
-        <label>Model</label><select id="textModel"><option>qwen3-max</option><option>qwen-plus</option><option>qwen-flash</option><option>deepseek-v3</option><option>deepseek-r1</option></select>
-        <label>Prompt</label><textarea id="textPrompt" rows="10">Turn these customer requirements into a Model Studio PoC scope with success metrics, model selection, integration risks, and next action for Alibaba Cloud Telesales MYS.</textarea>
+        <label>Model</label><select id="textModel"><option>qwen3.7-max</option><option>qwen3-max</option><option>qwen-plus</option><option>qwen-flash</option><option>deepseek-v3</option><option>deepseek-r1</option></select>
+        <div class="tabs mini-tabs">
+          <button type="button" data-text-case="warroom" class="active">War Room</button>
+          <button type="button" data-text-case="rfp">RFP Strategy</button>
+          <button type="button" data-text-case="migration">Migration Risk</button>
+        </div>
+        <label>Prompt</label><textarea id="textPrompt" rows="12">${textCases.warroom}</textarea>
         <button class="primary" id="runText">Generate Response</button>
       </div>
       <div class="output" id="textOutput">Ready.</div>
     </div>`;
+  document.querySelectorAll("[data-text-case]").forEach((btn) => {
+    btn.onclick = () => {
+      document.querySelectorAll("[data-text-case]").forEach((item) => item.classList.toggle("active", item === btn));
+      $("textPrompt").value = textCases[btn.dataset.textCase];
+    };
+  });
   $("runText").onclick = async () => {
     try {
       setOutput("textOutput", "", true);
