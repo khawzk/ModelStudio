@@ -1,76 +1,101 @@
 # Alibaba Cloud Model Studio Showcase
 
-Showcase app for the Alibaba Cloud Telesales MYS site.
+Custom demo console for Alibaba Cloud Telesales MYS.
 
-This app presents Model Studio capabilities through a custom web interface across Qwen, Wan, vision, video, and speech models. It no longer uses Streamlit; the frontend is plain HTML/CSS/JS and the Python backend proxies Model Studio API calls.
+The app presents Model Studio capabilities through a polished web interface across Qwen, Wan, vision, image, video, speech, and realtime translation models. It does not use Streamlit. The frontend is plain HTML/CSS/JS and the Python backend proxies Model Studio API calls when browser-side calls need a server, such as realtime WebSocket LiveTranslate.
+
+## Key Principle
+
+This project is BYOK: bring your own DashScope / Model Studio API key.
+
+The app does not require a committed API key and does not require Terraform-managed infrastructure. Users can paste their own key into the UI at runtime. For local private demos, the backend can also read `DASHSCOPE_API_KEY` from the environment.
 
 ## Demo Surface
 
-- **Model Gallery**: Qwen, Wan, speech, and video model families.
-- **Text & Reasoning**: Qwen / compatible chat models for discovery, scoping, and proposal drafting.
-- **Vision**: image understanding with Qwen multimodal models.
-- **Image Studio**: Qwen image editing with URL/upload/camera input, Qwen multi-image fusion, Wan2.7 selected-area workflows, Wan text-to-image, and z-image-turbo product photo generation.
-- **Video Studio**: Wan text-to-video and image-to-video async task flow.
-- **Speech**: ASR, speech translation, and CosyVoice voiceover generation.
-- **Run Log**: captures model, prompt, output preview, and latency for a downloadable demo report.
+- Text Intelligence: Qwen-compatible chat models for PoC scoping and customer follow-up.
+- Vision Lab: image upload or URL analysis with Qwen multimodal models.
+- Omni Models: realtime WAV translation through `qwen3.5-livetranslate-flash-realtime`.
+- Image Studio: Qwen image editing, upload/camera input, image fusion, and image generation.
+- Video Studio: async text-to-video and image-to-video workflow.
+- Speech AI: audio upload and ASR with Qwen speech models.
+- Session: run history for customer-facing demo evidence.
 
-## Why This Is FDE-Oriented
+## Local Run
 
-The app is structured around a premium telesales conversation:
+```bash
+cd AI_Model_Studio_Portal
+python3 -m pip install -r requirements.txt
+python3 server.py
+```
 
-1. Choose a customer journey.
-2. Map the journey to model families.
-3. Run a high-signal interaction.
-4. Capture outputs, latency, and follow-up evidence.
-5. Turn the session into a clean PoC follow-up.
+Open:
 
-## Setup
+```text
+http://localhost:8501
+```
 
-Set your Model Studio / DashScope API key:
+Then paste a DashScope / Model Studio API key into the UI.
+
+Optional local-only environment key:
 
 ```bash
 export DASHSCOPE_API_KEY="your-api-key"
+python3 server.py
 ```
 
-Run:
+## Lightweight Hosting Options
+
+GitHub Pages can host the project homepage under `/docs`, but it cannot run the Python backend or safely keep API keys. Use Pages as the public project entry point, then run the demo locally or on a lightweight VM/container when live API calls are needed.
+
+For a short customer session, the simplest live hosting path is:
+
+1. Start a small ECS manually.
+2. Clone this repository.
+3. Run the Python app.
+4. Let each user paste their own API key in the UI.
+5. Stop the ECS after the session.
+
+No Terraform is required.
+
+## Manual ECS Run
+
+On a fresh Ubuntu ECS:
 
 ```bash
-python server.py
+sudo apt-get update
+sudo apt-get install -y git python3-pip
+git clone https://github.com/khawzk/ModelStudio.git
+cd ModelStudio/AI_Model_Studio_Portal
+python3 -m pip install -r requirements.txt
+python3 server.py
 ```
 
-## Deploy To Alibaba Cloud ECS
+Open port `8501` temporarily in the security group, or put Nginx in front of it for a cleaner URL.
 
-A Terraform scaffold is included under `terraform/alibaba-ecs`.
+## GitHub Pages
 
-```bash
-cd terraform/alibaba-ecs
-terraform init
-terraform apply \
-  -var='ssh_public_key=ssh-rsa AAAA...' \
-  -var='dashscope_api_key=sk-...'
-```
+This repo includes a Pages workflow in `.github/workflows/pages.yml`. It publishes the static project page from `docs/`.
 
-After provisioning, Terraform outputs the showcase URL:
+Enable it in GitHub:
 
-```bash
-terraform output showcase_url
-```
-
-For public demos, replace `allowed_cidr=0.0.0.0/0` with your office IP range and put a domain or reverse proxy in front of port `8501`.
+1. Go to repository Settings.
+2. Open Pages.
+3. Select GitHub Actions as the source.
+4. Push to `main`.
 
 ## Region Notes
 
-Model Studio API keys are region-specific. Use the same region for model availability, endpoint, and API key.
-
-The app exposes these endpoint groups:
+Model availability and API keys are region-sensitive. The app exposes:
 
 - International / Singapore
 - China / Beijing
 - US / Virginia
 
+Use the region that matches the user's Model Studio entitlement.
+
 ## References
 
-- Model Studio supported models and capabilities: https://www.alibabacloud.com/help/en/model-studio/models
-- Wan2.7 image generation and editing: https://www.alibabacloud.com/help/en/model-studio/wan-image-generation-and-editing-api-reference
+- Model Studio models: https://www.alibabacloud.com/help/en/model-studio/models
+- Wan image generation and editing: https://www.alibabacloud.com/help/en/model-studio/wan-image-generation-and-editing-api-reference
 - Wan image-to-video: https://www.alibabacloud.com/help/doc-detail/3025059.html
-- Qwen real-time speech recognition: https://www.alibabacloud.com/help/en/model-studio/qwen-real-time-speech-recognition
+- LiveTranslate realtime: https://www.alibabacloud.com/help/en/model-studio/qwen3-5-livetranslate-flash-realtime
