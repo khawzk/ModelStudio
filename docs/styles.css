@@ -232,6 +232,19 @@ button.ghost.compact {
 }
 .tabs button.active { background: var(--orange); color: white; border-color: var(--orange); }
 .status { margin-top: 12px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+.console-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+}
 .bar { height: 8px; background: rgba(255,255,255,.10); border-radius: 999px; overflow: hidden; margin-top: 12px; }
 .bar span { display: block; width: 0; height: 100%; background: var(--orange); transition: width .3s ease; }
 @media (max-width: 980px) {

@@ -34,6 +34,7 @@ const REGIONS = {
 
 const corsHint = "If this request is blocked by browser CORS, run the Python proxy version from AI_Model_Studio_Portal/server.py for this specific module.";
 const sampleAudioUrl = "assets/modelstudio_sample.wav";
+const modelStudioConsoleUrl = "https://modelstudio.console.alibabacloud.com/ap-southeast-1/";
 let sampleAudioDataUrl = "";
 
 const textCases = {
@@ -690,15 +691,11 @@ async function runVideo() {
     const taskId = data.taskId;
     if (!taskId) throw new Error(`Video task submission returned no task id.\n\n${JSON.stringify(data.raw || data, null, 2)}`);
     $("videoBar").style.width = "100%";
-    const output = [
-      "Video task accepted.",
-      "",
-      `Task ID: ${taskId}`,
-      `Model: ${model}`,
-      "",
-      "GitHub Pages does not auto-poll this task because DashScope task polling may be blocked by browser CORS. The submission succeeded; keep this task ID for checking from Model Studio console or a backend proxy.",
-    ].join("\n");
-    $("videoStatus").textContent = output;
+    const output = `Video task accepted.\n\nTask ID: ${taskId}\nModel: ${model}\n\nOpen Model Studio Console and use the task ID to check the generated video result.`;
+    $("videoStatus").innerHTML = `
+      <div>${escapeHtml(output)}</div>
+      <a class="console-link" href="${modelStudioConsoleUrl}" target="_blank" rel="noreferrer">Open Model Studio Console</a>
+    `;
     addRun("Video task", model, prompt, output);
   } catch (e) { $("videoStatus").textContent = e.message; }
 }
