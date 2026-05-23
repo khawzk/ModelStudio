@@ -1,58 +1,51 @@
 # ModelStudio
 
-Alibaba Cloud Model Studio demo assets for customer-facing solution discovery.
+Customer-facing BYOK demo console for Alibaba Cloud Model Studio, built for the Alibaba Cloud Telesales MYS site.
 
-## Current Package
+## Live Demo
 
-`AI_Model_Studio_Portal` is a custom BYOK demo console for Alibaba Cloud Telesales MYS. It showcases Qwen, Wan image, vision, image editing, speech, and realtime translation through a polished web UI.
-
-BYOK means users bring their own DashScope / Model Studio API key at runtime. The repository does not store keys and no Terraform-managed cloud resource is required.
-
-## Run The Demo
-
-```bash
-cd AI_Model_Studio_Portal
-python3 -m pip install -r requirements.txt
-python3 server.py
-```
-
-Open:
-
-```text
-http://localhost:8501
-```
-
-Paste your DashScope / Model Studio API key in the UI.
-
-## GitHub Pages Live Demo
-
-This repo publishes the browser demo directly from `docs/` using GitHub Pages:
+Open the GitHub Pages app:
 
 ```text
 https://khawzk.github.io/ModelStudio/
 ```
 
-Users paste their own DashScope / Model Studio API key into the page. The key stays in the browser session and is not committed to the repo.
+Paste a DashScope / Model Studio API key in the sidebar and run the demos directly in the browser. No local setup is required.
 
-To enable:
+## What It Shows
+
+- Text Intelligence: Qwen chat models for PoC scoping, RFP strategy, and migration planning.
+- Vision Lab: upload or link an image for multimodal analysis.
+- Omni Lab: Qwen-Omni audio/image/text understanding demos, plus LiveTranslate positioning.
+- Image Studio: text-to-image, image editing, fusion, upload, and camera capture flows.
+- Speech AI: sample WAV and uploaded audio transcription with Qwen ASR.
+- Session: run history for customer-facing demo evidence.
+
+## BYOK Design
+
+BYOK means bring your own key. The app does not store API keys in the repository or backend infrastructure. In the GitHub Pages version, the key is entered at runtime and used from the browser session.
+
+Most REST-based demos can run from Pages directly: text, vision, image, omni chat completion, and ASR. Realtime LiveTranslate uses WebSocket authorization that browsers cannot attach natively, so it remains documented as an architecture/demo positioning item unless a backend proxy is added.
+
+## Repository Layout
+
+```text
+docs/                  GitHub Pages app
+AI_Model_Studio_Portal/ Optional Python proxy version for private backend demos
+.github/workflows/     Pages deployment workflow
+```
+
+## Deployment
+
+This repo publishes `docs/` through GitHub Pages using `.github/workflows/pages.yml`.
+
+To enable Pages on a fork:
 
 1. Open repository Settings.
 2. Go to Pages.
 3. Set the source to GitHub Actions.
 4. Push to `main`.
 
-Most REST-based modules run directly from GitHub Pages: text, vision, image, and ASR. The page includes a sample 16 kHz mono PCM WAV for speech demos.
+## Notes
 
-Realtime LiveTranslate still needs the Python proxy because browser WebSocket cannot set the required `Authorization` header.
-
-## Lightweight ECS Option
-
-For realtime LiveTranslate or any browser CORS fallback:
-
-1. Create a small ECS manually.
-2. Clone this repo.
-3. Run `AI_Model_Studio_Portal/server.py`.
-4. Let each user paste their own API key.
-5. Stop the ECS after the session.
-
-This keeps cost low and avoids storing API keys on infrastructure.
+Model availability and API keys are region-sensitive. The UI exposes International / Singapore, China / Beijing, and US / Virginia region choices. Use the region that matches the API key entitlement.
