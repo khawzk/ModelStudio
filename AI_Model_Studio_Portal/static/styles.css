@@ -236,3 +236,5 @@ button.ghost.slim { margin-top: 10px; }
   h1 { font-size: 33px; }
   .run-metric { text-align: left; }
 }
+
+.disclaimer { margin: 8px 0 18px; font-size: 12px; line-height: 1.5; color: #9aa4b2; }

@@ -1,6 +1,6 @@
 # AI Model Studio Portal
 
-Optional Python proxy version of the Alibaba Cloud Model Studio demo console.
+Optional Python proxy version of the Multimodal Model Console demo (a personal project, not affiliated with Alibaba Cloud).
 
 The primary demo is the GitHub Pages app at:
 

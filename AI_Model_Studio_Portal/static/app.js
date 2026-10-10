@@ -14,7 +14,7 @@ const $ = (id) => document.getElementById(id);
 const state = () => ({ region: $("region").value, apiKey: $("apiKey").value.trim() });
 
 const textCases = {
-  warroom: `You are Qwen 3.7 Max acting as a principal Alibaba Cloud solution architect in a live executive war room.
+  warroom: `You are Qwen 3.7 Max acting as a principal cloud solution architect in a live executive war room.
 
 Customer: A Malaysian retail bank wants an AI telesales platform in 6 weeks. Constraints:
 - 3.2M customer profiles, 18 months call history, Bahasa Malaysia + English call transcripts.
@@ -25,20 +25,20 @@ Customer: A Malaysian retail bank wants an AI telesales platform in 6 weeks. Con
 
 Produce:
 1. A sharp executive recommendation in 5 bullets.
-2. Target architecture using Alibaba Cloud Model Studio, Qwen, ASR, RAG, feature store/scoring, and human approval.
+2. Target architecture using Qwen models, ASR, RAG, feature store/scoring, and human approval.
 3. A phased 6-week PoC plan with owners, acceptance criteria, and measurable KPIs.
 4. Risk register with mitigation for privacy, model quality, latency, sales adoption, and regulatory review.
 5. A decision matrix comparing: rules engine, classic ML lead scoring, LLM-only workflow, and hybrid Qwen + RAG + scoring.
-6. A final "next meeting close" script for telesales MYS to secure customer buy-in.
+6. A final "next meeting close" script to secure customer buy-in.
 
 Make it commercially grounded, technically specific, and concise enough to paste into a customer follow-up email.`,
-  rfp: `Draft a high-quality RFP response strategy for Alibaba Cloud Model Studio.
+  rfp: `Draft a high-quality RFP response strategy for a managed multimodal model platform.
 
-Scenario: A regional e-commerce group wants a multimodal AI platform for product content, livestream clips, seller support, and multilingual customer service. They compare Alibaba Cloud against OpenAI, AWS, and Google.
+Scenario: A regional e-commerce group wants a multimodal AI platform for product content, livestream clips, seller support, and multilingual customer service. They are comparing several managed model platforms.
 
 Return:
 1. Win themes.
-2. Differentiated Model Studio capabilities.
+2. Differentiated platform capabilities.
 3. Reference architecture.
 4. Security and governance response.
 5. Pricing / cost-control narrative.
@@ -46,7 +46,7 @@ Return:
 7. Red-team objections and strong rebuttals.`,
   migration: `Analyze this AI migration case.
 
-Customer runs multiple disconnected AI pilots: one OpenAI chatbot, one local OCR model, one image generation SaaS, and one speech transcription vendor. Costs are rising, data governance is weak, and leadership wants a single AI platform on Alibaba Cloud.
+Customer runs multiple disconnected AI pilots: one OpenAI chatbot, one local OCR model, one image generation SaaS, and one speech transcription vendor. Costs are rising, data governance is weak, and leadership wants a single managed AI platform.
 
 Build a migration plan:
 1. Current-state diagnosis.
@@ -111,7 +111,7 @@ function renderText() {
       setOutput("textOutput", "", true);
       const model = $("textModel").value;
       const prompt = $("textPrompt").value;
-      const data = await api("/api/chat", { model, prompt, system: "You are an Alibaba Cloud solution architect. Be concise, polished, and commercially grounded." });
+      const data = await api("/api/chat", { model, prompt, system: "You are a cloud solution architect. Be concise, polished, and commercially grounded." });
       setOutput("textOutput", data.text);
       addRun("Text", model, prompt, data.text);
     } catch (e) { setOutput("textOutput", e.message); }
@@ -386,7 +386,7 @@ function renderSpeech() {
       <div class="panel">
         <label>Model</label><select id="asrModel"><option>qwen3-asr-flash</option></select>
         <label>Language hint</label><select id="asrLang"><option value="auto">Auto</option><option value="en">English</option><option value="zh">Chinese</option><option value="ms">Malay</option><option value="id">Indonesian</option></select>
-        <label>Context</label><textarea id="asrContext" rows="4">Alibaba Cloud, Model Studio, Qwen, Wan, DashScope, Telesales MYS</textarea>
+        <label>Context</label><textarea id="asrContext" rows="4">Model Studio, Qwen, Wan, DashScope</textarea>
         <label>Audio file</label><input id="asrFile" type="file" accept="audio/*" />
         <button class="primary" id="runAsr">Transcribe</button>
       </div>
