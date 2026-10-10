@@ -301,7 +301,7 @@ class Handler(BaseHTTPRequestHandler):
         payload = {
             "model": data.get("model", "qwen-plus"),
             "messages": [
-                {"role": "system", "content": data.get("system", "You are a concise Alibaba Cloud solution architect.")},
+                {"role": "system", "content": data.get("system", "You are a concise cloud solution architect.")},
                 {"role": "user", "content": data.get("prompt", "")},
             ],
         }

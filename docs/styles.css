@@ -296,3 +296,5 @@ button.ghost.compact {
     grid-column: 1;
   }
 }
+
+.disclaimer { margin: 8px 0 18px; font-size: 12px; line-height: 1.5; color: #9aa4b2; }

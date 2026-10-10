@@ -1,6 +1,8 @@
 # ModelStudio
 
-Customer-facing BYOK demo console for Alibaba Cloud Model Studio, built for the Alibaba Cloud Telesales MYS site.
+Multimodal Model Console: a bring-your-own-key demo console for the Qwen models served through the Model Studio (DashScope) API.
+
+Personal project, not affiliated with or endorsed by Alibaba Cloud. Model Studio, Qwen and DashScope are Alibaba Cloud product names, used here only to describe the API the console calls.
 
 ## Live Demo
 
